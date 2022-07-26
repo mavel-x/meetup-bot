@@ -1,2 +1,2 @@
-# meetup-bot
+# Бот для сервиса PythonMeetup
  
