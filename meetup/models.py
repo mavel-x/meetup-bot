@@ -60,3 +60,6 @@ class Question(models.Model):
                                 verbose_name='Кто ответил?',
                                 on_delete=models.CASCADE,
                                 limit_choices_to={'is_speaker': True})
+
+    def __str__(self):
+        return f'{self.title} ({self.speaker})'
