@@ -6,7 +6,7 @@ from telegram import Bot
 
 
 def notify_speaker(user_id, bot, time):
-    bot.send_message(chat_id=user_id, text=f'Вас назначили спикером на {time}!')
+    bot.send_message(chat_id=user_id, text=f'Г‚Г Г± Г­Г Г§Г­Г Г·ГЁГ«ГЁ Г±ГЇГЁГЄГҐГ°Г®Г¬ Г­Г  {time}!')
 
 
 def main():
@@ -14,7 +14,7 @@ def main():
     token = os.getenv('TG_TOKEN')
     bot = Bot(token=token)
 
-    argparser = argparse.ArgumentParser(description='Notify speaker about participation.')
+    argparser = argparse.ArgumentParser(description='Notify speaker of participation.')
     argparser.add_argument(
         'user_id',
         type=int,
