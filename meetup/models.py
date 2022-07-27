@@ -5,10 +5,9 @@ from django.db import models
 class Participant(models.Model):
     name = models.CharField(max_length=200, verbose_name='Имя')
     telegram_id = models.IntegerField(verbose_name='ID в Telegram')
-    email = models.EmailField(max_length=200, verbose_name='Email',
-                              default='', blank=True)
+    email = models.EmailField(max_length=200, verbose_name='Email', blank=True)
     company = models.CharField(max_length=200, verbose_name='Компания',
-                               default='', blank=True)
+                               blank=True)
     is_speaker = models.BooleanField(verbose_name='Спикер', default=False)
 
     class Meta:
@@ -19,8 +18,7 @@ class Participant(models.Model):
 
 
 class Section(models.Model):
-    title = models.CharField(max_length=200, verbose_name='Название',
-                             default='')
+    title = models.CharField(max_length=200, verbose_name='Название')
     order = models.IntegerField(verbose_name='Порядок')
 
     class Meta:
@@ -31,11 +29,9 @@ class Section(models.Model):
 
 
 class Meeting(models.Model):
-    title = models.CharField(max_length=200, verbose_name='Название',
-                             default='')
+    title = models.CharField(max_length=200, verbose_name='Название')
     order = models.IntegerField(verbose_name='Порядок')
-    content = models.TextField(verbose_name='Содержание', default='',
-                               blank=True)
+    content = models.TextField(verbose_name='Содержание', blank=True)
     section = models.ForeignKey(Section, related_name='meetings',
                                 verbose_name='Секция',
                                 on_delete=models.CASCADE)
@@ -52,7 +48,7 @@ class Meeting(models.Model):
 
 class Question(models.Model):
     question = models.TextField(verbose_name='Вопрос')
-    answer = models.TextField(default='', blank=True, verbose_name='Ответ')
+    answer = models.TextField(blank=True, verbose_name='Ответ')
     participant = models.ForeignKey(Participant, related_name='questions',
                                     verbose_name='Кто задал?',
                                     on_delete=models.CASCADE)
