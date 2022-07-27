@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.db import models
+from django.forms import CheckboxSelectMultiple
 from .models import Participant, Section, Meeting
 from adminsortable2.admin import SortableAdminMixin, SortableTabularInline
 
@@ -15,6 +17,9 @@ class MeetingInline(SortableTabularInline):
     model = Meeting
     extra = 1
     fields = ('order', 'title', 'content', 'speakers')
+    formfield_overrides = {
+        models.ManyToManyField: {'widget': CheckboxSelectMultiple},
+    }
 
 
 @admin.register(Section)
