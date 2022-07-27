@@ -15,7 +15,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from meetup import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('meetup/participant/<int:telegram_id>/', views.get_participant, name='get_participant'),
+    path('meetup/participant/register/', views.register_participant, name='register_participant'),
+    path('meetup/sections/', views.get_sections_list, name='get_sections_list'),
+    path('meetup/section/<int:section_id>/', views.get_section, name='get_section'),
+    path('meetup/meeting/<int:meeting_id>/', views.get_meeting, name='get_meeting'),
+    path('meetup/questions/create/', views.create_question, name='create_question'),
+    path('meetup/questions/add_answer/', views.add_answer_to_question, name='add_answer_to_question'),
 ]
