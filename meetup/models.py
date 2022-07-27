@@ -35,8 +35,8 @@ class Meeting(models.Model):
                                 verbose_name='Секция',
                                 on_delete=models.CASCADE)
     speakers = models.ManyToManyField(Participant, related_name='meetings',
-                                      verbose_name='Спикеры', null=True,
-                                      blank=True)
+                                      verbose_name='Спикеры', blank=True,
+                                      limit_choices_to={'is_speaker': True})
 
     class Meta:
         ordering = ('order',)
