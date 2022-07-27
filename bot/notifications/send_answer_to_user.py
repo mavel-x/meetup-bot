@@ -19,7 +19,7 @@ def main():
     token = os.getenv('TG_TOKEN')
     bot = Bot(token=token)
 
-    argparser = argparse.ArgumentParser(description='Notify user of successful registration.')
+    argparser = argparse.ArgumentParser(description='Send answer to user.')
     argparser.add_argument(
         'user_id',
         type=int,
