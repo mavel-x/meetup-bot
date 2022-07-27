@@ -37,7 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'meetup.apps.MeetupConfig'
+    'meetup.apps.MeetupConfig',
+    'adminsortable2'
 ]
 
 MIDDLEWARE = [

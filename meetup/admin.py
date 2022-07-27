@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Participant, Section, Meeting
+from adminsortable2.admin import SortableAdminMixin
 
 
 @admin.register(Participant)
@@ -10,5 +11,5 @@ class ParticipantAdmin(admin.ModelAdmin):
 
 
 @admin.register(Section)
-class SectionAdmin(admin.ModelAdmin):
+class SectionAdmin(SortableAdminMixin, admin.ModelAdmin):
     list_display = ('title',)
