@@ -3,6 +3,7 @@ from django.db import models
 
 class Participant(models.Model):
     name = models.CharField(max_length=200, verbose_name='Имя')
+    telegram_id = models.IntegerField(verbose_name='ID в Telegram')
     email = models.EmailField(max_length=200, verbose_name='Email',
                               default='', blank=True)
     company = models.CharField(max_length=200, verbose_name='Компания',
