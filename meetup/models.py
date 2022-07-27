@@ -57,4 +57,4 @@ class Question(models.Model):
                                 limit_choices_to={'is_speaker': True})
 
     def __str__(self):
-        return f'{self.title} ({self.speaker})'
+        return f'{self.question} ({self.speaker})'
