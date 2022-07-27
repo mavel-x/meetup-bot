@@ -15,6 +15,9 @@ class Section(models.Model):
                              default='')
     order = models.IntegerField(verbose_name='Порядок')
 
+    class Meta:
+        ordering = ('order',)
+
 
 class Meeting(models.Model):
     title = models.CharField(max_length=200, verbose_name='Название',
@@ -24,3 +27,6 @@ class Meeting(models.Model):
                                blank=True)
     speakers = models.ManyToManyField(Participant, related_name='meetings',
                                       verbose_name='Спикеры')
+
+    class Meta:
+        ordering = ('order',)
