@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.db import models
 from django.forms import CheckboxSelectMultiple
-from .models import Participant, Section, Meeting
+from .models import Participant, Question, Section, Meeting
 from adminsortable2.admin import SortableAdminMixin, SortableTabularInline
 
 
@@ -28,6 +28,12 @@ class SectionAdmin(SortableAdminMixin, admin.ModelAdmin):
     inlines = (MeetingInline,)
 
 
-@admin.register(Meeting)
-class MeetingAdmin(admin.ModelAdmin):
-    pass
+@admin.register(Question)
+class QuestionAdmin(admin.ModelAdmin):
+    list_display = ('question', 'answer', 'participant', 'speaker')
+    list_filter = ('speaker',)
+
+
+# @admin.register(Meeting)
+# class MeetingAdmin(admin.ModelAdmin):
+#     pass
