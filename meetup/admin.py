@@ -8,6 +8,7 @@ class ParticipantAdmin(admin.ModelAdmin):
     list_display = ('name', 'company', 'is_speaker')
     search_fields = ('name', 'company')
     list_filter = ('is_speaker',)
+    list_editable = ('is_speaker',)
 
 
 class MeetingInline(SortableTabularInline):
