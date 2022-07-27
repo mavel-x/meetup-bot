@@ -32,8 +32,7 @@ def register(update: Update, context: CallbackContext):
         'fisrt_name': first_name,
         'last_name': last_name,
     }
-    #TODO insert the actual User class from the actual DB module
-    user = database.User()
+
     send_user_to_db(user)
 
 
