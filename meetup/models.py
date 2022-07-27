@@ -10,6 +10,9 @@ class Participant(models.Model):
                                default='', blank=True)
     is_speaker = models.BooleanField(verbose_name='Спикер', default=False)
 
+    class Meta:
+        ordering = ('name',)
+
     def __str__(self):
         return f'{self.name} ({self.company})'
 
