@@ -35,11 +35,11 @@ logger = logging.getLogger(__name__)
 # TODO: insert real API endpoints
 root_url = 'http://127.0.0.1:8000/meetup/'
 schedule_url = 'http://####'
-meetings_url = 'http://####'
-speakers_url = 'http://####'
-create_user_url = urljoin(root_url, 'participant/register/')
 sections_url = urljoin(root_url, 'sections/')
+meetings_url = urljoin(root_url, 'section/')
+speakers_url = urljoin(root_url, 'meeting/')
 participant_url = urljoin(root_url, 'participant/')
+create_user_url = urljoin(root_url, 'participant/register/')
 
 
 def start(update: Update, context: CallbackContext) -> int:
@@ -149,7 +149,7 @@ def send_schedule_to_user(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
     query.answer()
 
-    schedule = fetch_schedule_from_db()
+    # schedule = fetch_schedule_from_db()
 
     update.effective_chat.send_message('Here is a dummy schedule.')
 
@@ -160,7 +160,7 @@ def show_sections_for_question(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
-    sections = fetch_sections_from_db()
+    # sections = fetch_sections_from_db()
 
     # TODO for section in sections:
     #   create a button for each section
@@ -185,7 +185,7 @@ def show_meetings_for_question(update: Update, context: CallbackContext):
     query.answer()
     context.chat_data['section'] = selection = query.data
 
-    meetings = fetch_meetings_for_section_from_db(selection)
+    # meetings = fetch_meetings_for_section_from_db(selection)
 
     # TODO for meeting in meetings:
     #   create a button for each meeting
@@ -209,9 +209,14 @@ def show_speakers_for_question(update: Update, context: CallbackContext):
     """Store selected meeting and show a list of speakers on an inline keyboard"""
     query = update.callback_query
     query.answer()
-    context.chat_data['meeting'] = query.data
+    context.chat_data['meeting'] = selection = query.data
 
-    speakers = fetch_speakers_from_db()
+    # speakers = fetch_speakers_for_meeting_from_db(selection)
+
+    # TODO for speaker in speakers:
+    #   create a button for each speaker
+    #   speaker['name'] goes into button text
+    #   speaker['telegram_id'] goes into callback_data
 
     keyboard = [
         [
@@ -290,13 +295,14 @@ def fetch_schedule_from_db() -> str:
     return response.text
 
 
-def fetch_sections_from_db():
+def fetch_sections_from_db() -> dict:
+    """Ask DB for a list of sections in the event"""
     response = requests.get(sections_url)
     response.raise_for_status()
     return response.json()['sections']
 
 
-def fetch_meetings_for_section_from_db(section_id):
+def fetch_meetings_for_section_from_db(section_id) -> dict:
     """Ask DB for a list of meetings in a given section"""
     url = urljoin(meetings_url, section_id)
     response = requests.get(url)
@@ -304,17 +310,17 @@ def fetch_meetings_for_section_from_db(section_id):
     return response.json()['meetings']
 
 
-def fetch_speakers_from_db():
-    """Ask DB for a list of users who are marked as speakers"""
-    response = requests.get(speakers_url)
+def fetch_speakers_for_meeting_from_db(meeting_id) -> dict:
+    """Ask DB for a list of users in a given meeting"""
+    url = urljoin(speakers_url, meeting_id)
+    response = requests.get(url)
     response.raise_for_status()
-    return response.content
+    return response.json()['speakers']
 
 
 def participant_is_in_db(participant_telegram_id: int):
     response = requests.get(f'{participant_url}{participant_telegram_id}')
     return response.ok
-
 
 
 def main():
