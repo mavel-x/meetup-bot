@@ -159,22 +159,22 @@ def send_schedule_to_user(update: Update, context: CallbackContext) -> int:
 def show_sections_for_question(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
+    sections = fetch_sections_from_db()
 
-    # sections = fetch_sections_from_db()
+    keyboard = []
+    row = []
+    for section in sections:
+        row.append(
+            InlineKeyboardButton(
+                section['title'],
+                callback_data=f"section_{section['id']}"
+            )
+        )
+        if len(row) > 1:
+            keyboard.append(row.copy())
+            row.clear()
+    keyboard.append([InlineKeyboardButton("Cancel", callback_data='cancel')])
 
-    # TODO for section in sections:
-    #   create a button for each section
-    #   section['title'] goes into button text
-    #   section['id'] goes into callback_data
-
-    keyboard = [
-        [
-            InlineKeyboardButton("Section 1", callback_data='section_1'),
-            InlineKeyboardButton("Section 2", callback_data='section_2'),
-        ],
-        [InlineKeyboardButton("Section 3", callback_data='section_3')],
-        [InlineKeyboardButton("Cancel", callback_data='cancel')],
-    ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     query.edit_message_text('Please choose a section:', reply_markup=reply_markup)
 
@@ -184,22 +184,22 @@ def show_meetings_for_question(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
     context.chat_data['section'] = selection = query.data
+    section_id = selection.split('_')[1]
+    meetings = fetch_meetings_for_section_from_db(section_id)
 
-    # meetings = fetch_meetings_for_section_from_db(selection)
-
-    # TODO for meeting in meetings:
-    #   create a button for each meeting
-    #   meeting['title'] goes into button text
-    #   meeting['id'] goes into callback_data
-
-    keyboard = [
-        [
-            InlineKeyboardButton("Meeting 1", callback_data='meeting_1'),
-            InlineKeyboardButton("Meeting 2", callback_data='meeting_2'),
-        ],
-        [InlineKeyboardButton("Meeting 3", callback_data='meeting_3')],
-        [InlineKeyboardButton("Cancel", callback_data='cancel')],
-    ]
+    keyboard = []
+    row = []
+    for meeting in meetings:
+        row.append(
+            InlineKeyboardButton(
+                meeting['title'],
+                callback_data=f"meeting_{meeting['id']}"
+            )
+        )
+        if len(row) > 1:
+            keyboard.append(row.copy())
+            row.clear()
+    keyboard.append([InlineKeyboardButton("Cancel", callback_data='cancel')])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     query.edit_message_text('Please choose a meeting:', reply_markup=reply_markup)
@@ -210,26 +210,41 @@ def show_speakers_for_question(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
     context.chat_data['meeting'] = selection = query.data
+    meeting_id = selection.split('_')[1]
+    speakers = fetch_speakers_for_meeting_from_db(meeting_id)
 
-    # speakers = fetch_speakers_for_meeting_from_db(selection)
+    keyboard = []
+    row = []
+    if speakers:
+        message_text = 'Please choose a speaker:'
+        if len(speakers) == 1:
+            keyboard = [
+                [InlineKeyboardButton(
+                    speakers[0]['name'],
+                    callback_data=f"speaker_{speakers[0]['telegram_id']}"
+                )]
+            ]
+        else:
+            for speaker in speakers:
+                row.append(
+                    InlineKeyboardButton(
+                        speaker['name'],
+                        callback_data=f"speaker_{speaker['telegram_id']}"
+                    )
+                )
+                if len(row) > 1:
+                    keyboard.append(row.copy())
+                    row.clear()
+        keyboard.append([InlineKeyboardButton("Cancel", callback_data='cancel')])
 
-    # TODO for speaker in speakers:
-    #   create a button for each speaker
-    #   speaker['name'] goes into button text
-    #   speaker['telegram_id'] goes into callback_data
-
-    keyboard = [
-        [
-            InlineKeyboardButton("Speaker 1", callback_data='speaker_1'),
-            InlineKeyboardButton("Speaker 2", callback_data='speaker_2'),
-        ],
-        [InlineKeyboardButton("Speaker 3", callback_data='speaker_3')],
-        [InlineKeyboardButton("Cancel", callback_data='cancel')],
-    ]
+    else:
+        message_text = 'No speakers for this event.'
+        keyboard = [
+            [InlineKeyboardButton('Okay.', callback_data='cancel')]
+        ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-
-    query.edit_message_text('Please choose a speaker:', reply_markup=reply_markup)
+    query.edit_message_text(message_text, reply_markup=reply_markup)
 
 
 def request_question_text(update: Update, context: CallbackContext):
@@ -243,7 +258,7 @@ def request_question_text(update: Update, context: CallbackContext):
     return AWAIT_QUESTION
 
 
-# TODO insert this function into the logic
+# TODO insert this function into the logic if there's time
 def confirm_sending_question(update: Update, context: CallbackContext):
     """Show the user their question and the speaker it will go to. Ask to confirm or cancel."""
     pass
@@ -346,7 +361,10 @@ def main():
             ],
             CHOOSE_SCHEDULE_OR_QUESTION: [
                 CallbackQueryHandler(send_schedule_to_user, pattern=r'^schedule$'),
-                CallbackQueryHandler(show_sections_for_question, pattern=r'^question$'),
+                CallbackQueryHandler(
+                    show_sections_for_question,
+                    pattern=r'^question$'
+                ),
                 CallbackQueryHandler(show_meetings_for_question, pattern=r'^section_\d+$'),
                 CallbackQueryHandler(show_speakers_for_question, pattern=r'^meeting_\d+$'),
                 CallbackQueryHandler(request_question_text, pattern=r'^speaker_\d+$'),
