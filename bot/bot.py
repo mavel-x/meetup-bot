@@ -1,9 +1,10 @@
 import logging
 import os
 
+import notifications.notify_user_of_registration
 import requests
 from dotenv import load_dotenv
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Bot
 from telegram.ext import (
     CallbackContext,
     CallbackQueryHandler,
@@ -33,7 +34,10 @@ logger = logging.getLogger(__name__)
 
 # TODO: insert real API endpoints
 schedule_url = 'http://####'
-create_user_url = "http://####"
+meetings_url = 'http://####'
+speakers_url = 'http://####'
+create_user_url = ' http://127.0.0.1:8000/meetup/participant/register/'
+sections_url = ' http://127.0.0.1:8000/meetup/sections/'
 
 
 def start(update: Update, context: CallbackContext) -> int:
@@ -106,7 +110,7 @@ def confirm_company_name(update: Update, context: CallbackContext) -> int:
     return AWAIT_CONFIRMATION
 
 
-def send_user_to_db(update: Update, context: CallbackContext):
+def send_user_to_db(update: Update, context: CallbackContext, bot):
     query = update.callback_query
     query.answer()
 
@@ -116,10 +120,10 @@ def send_user_to_db(update: Update, context: CallbackContext):
         'company': context.chat_data['company'],
     }
 
-    # TODO send the user's data to DB
-    # response = requests.post(create_user_url, json=user)
-    # response.raise_for_status()
-    # TODO if registration successful, notify of success
+    response = requests.post(create_user_url, json=user)
+    response.raise_for_status()
+    if response.status_code == 200:
+        notifications.notify_user_of_registration.notify_user_of_registration(user['user_id'], bot)
     query.edit_message_text(f'User registered: {user}. You are now in the CHOOSE_SCH_OR_Q stage.')
 
     return offer_to_choose_schedule_or_question(update, context)
@@ -272,22 +276,29 @@ def help(update: Update, context: CallbackContext):
 
 
 def fetch_schedule_from_db() -> str:
-    pass
+    response = requests.get(schedule_url)
+    response.raise_for_status()
+    return response.text
 
 
 def fetch_sections_from_db():
-    """Ask DB for a list of sections of meetings"""
-    pass
+    response = requests.get(sections_url)
+    response.raise_for_status()
+    return response.content
 
 
 def fetch_meetings_from_db():
     """Ask DB for a list of meetings in a given section"""
-    pass
+    response = requests.get(meetings_url)
+    response.raise_for_status()
+    return response.content
 
 
 def fetch_speakers_from_db():
     """Ask DB for a list of users who are marked as speakers"""
-    pass
+    response = requests.get(speakers_url)
+    response.raise_for_status()
+    return response.content
 
 
 def main():
