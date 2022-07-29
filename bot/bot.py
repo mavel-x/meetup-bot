@@ -1,5 +1,6 @@
 import logging
 import os
+from urllib.parse import urljoin
 
 import requests
 from dotenv import load_dotenv
@@ -34,11 +35,13 @@ logger = logging.getLogger(__name__)
 ) = range(7)
 
 # TODO: insert real API endpoints
+root_url = 'http://127.0.0.1:8000/meetup/'
 schedule_url = 'http://####'
 meetings_url = 'http://####'
 speakers_url = 'http://####'
-create_user_url = ' http://127.0.0.1:8000/meetup/participant/register/'
-sections_url = ' http://127.0.0.1:8000/meetup/sections/'
+create_user_url = urljoin(root_url, 'participant/register/')
+sections_url = urljoin(root_url, 'sections/')
+participant_url = urljoin(root_url, 'participant/')
 
 
 def start(update: Update, context: CallbackContext) -> int:
@@ -46,10 +49,9 @@ def start(update: Update, context: CallbackContext) -> int:
         chat_id=update.effective_chat.id,
         text="Dummy start text."
     )
-    # TODO check if user already in database
 
-    # dummy if-statement to show function logic
-    if 'user' in 'db':
+    user_id = update.effective_user.id
+    if participant_is_in_db(user_id):
         return offer_to_choose_schedule_or_question(update, context)
 
     keyboard = [
@@ -300,6 +302,12 @@ def fetch_speakers_from_db():
     response = requests.get(speakers_url)
     response.raise_for_status()
     return response.content
+
+
+def participant_is_in_db(participant_telegram_id: int):
+    response = requests.get(f'{participant_url}{participant_telegram_id}')
+    return response.ok
+
 
 
 def main():
