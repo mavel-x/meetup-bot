@@ -113,20 +113,19 @@ def confirm_company_name(update: Update, context: CallbackContext) -> int:
     return AWAIT_CONFIRMATION
 
 
-def send_user_to_db(update: Update, context: CallbackContext, bot):
+def send_user_to_db(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
 
     user = {
-        'user_id': update.effective_user.id,
-        'full_name': context.chat_data['full_name'],
+        'telegram_id': update.effective_user.id,
+        'name': context.chat_data['full_name'],
         'company': context.chat_data['company'],
     }
 
     response = requests.post(create_user_url, json=user)
     response.raise_for_status()
-    if response.status_code == 200:
-        notify_user_of_registration(user['user_id'], bot)
+    update.effective_chat.send_message(text='Регистрация успешна. Приятного мероприятия!')
     query.edit_message_text(f'User registered: {user}. You are now in the CHOOSE_SCH_OR_Q stage.')
 
     return offer_to_choose_schedule_or_question(update, context)
