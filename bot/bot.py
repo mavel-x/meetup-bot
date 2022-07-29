@@ -15,8 +15,6 @@ from telegram.ext import (
     Updater,
 )
 
-from notifications.notify_user_of_registration import notify_user_of_registration
-
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
@@ -123,7 +121,7 @@ def send_user_to_db(update: Update, context: CallbackContext):
         'company': context.chat_data['company'],
     }
 
-    response = requests.post(create_user_url, json=user)
+    response = requests.post(create_user_url, data=user)
     response.raise_for_status()
     update.effective_chat.send_message(text='Регистрация успешна. Приятного мероприятия!')
     query.edit_message_text(f'User registered: {user}. You are now in the CHOOSE_SCH_OR_Q stage.')
