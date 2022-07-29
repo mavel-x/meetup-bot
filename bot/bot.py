@@ -162,6 +162,11 @@ def show_sections_for_question(update: Update, context: CallbackContext):
 
     sections = fetch_sections_from_db()
 
+    # TODO for section in sections:
+    #   create a button for each section
+    #   section['title'] goes into button text
+    #   section['id'] goes into callback_data
+
     keyboard = [
         [
             InlineKeyboardButton("Section 1", callback_data='section_1'),
@@ -178,9 +183,14 @@ def show_meetings_for_question(update: Update, context: CallbackContext):
     """Store selected section and show a list of meetings"""
     query = update.callback_query
     query.answer()
-    context.chat_data['section'] = query.data
+    context.chat_data['section'] = selection = query.data
 
-    meetings = fetch_meetings_from_db()
+    meetings = fetch_meetings_for_section_from_db(selection)
+
+    # TODO for meeting in meetings:
+    #   create a button for each meeting
+    #   meeting['title'] goes into button text
+    #   meeting['id'] goes into callback_data
 
     keyboard = [
         [
@@ -190,7 +200,6 @@ def show_meetings_for_question(update: Update, context: CallbackContext):
         [InlineKeyboardButton("Meeting 3", callback_data='meeting_3')],
         [InlineKeyboardButton("Cancel", callback_data='cancel')],
     ]
-
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     query.edit_message_text('Please choose a meeting:', reply_markup=reply_markup)
@@ -284,14 +293,15 @@ def fetch_schedule_from_db() -> str:
 def fetch_sections_from_db():
     response = requests.get(sections_url)
     response.raise_for_status()
-    return response.content
+    return response.json()['sections']
 
 
-def fetch_meetings_from_db():
+def fetch_meetings_for_section_from_db(section_id):
     """Ask DB for a list of meetings in a given section"""
-    response = requests.get(meetings_url)
+    url = urljoin(meetings_url, section_id)
+    response = requests.get(url)
     response.raise_for_status()
-    return response.content
+    return response.json()['meetings']
 
 
 def fetch_speakers_from_db():
