@@ -1,7 +1,6 @@
 import logging
 import os
 
-import notifications.notify_user_of_registration
 import requests
 from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Bot
@@ -14,6 +13,8 @@ from telegram.ext import (
     MessageHandler,
     Updater,
 )
+
+from notifications.notify_user_of_registration import notify_user_of_registration
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -123,7 +124,7 @@ def send_user_to_db(update: Update, context: CallbackContext, bot):
     response = requests.post(create_user_url, json=user)
     response.raise_for_status()
     if response.status_code == 200:
-        notifications.notify_user_of_registration.notify_user_of_registration(user['user_id'], bot)
+        notify_user_of_registration(user['user_id'], bot)
     query.edit_message_text(f'User registered: {user}. You are now in the CHOOSE_SCH_OR_Q stage.')
 
     return offer_to_choose_schedule_or_question(update, context)
