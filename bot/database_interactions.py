@@ -8,6 +8,7 @@ meetings_url = urljoin(root_url, 'section/')
 speakers_url = urljoin(root_url, 'meeting/')
 participant_url = urljoin(root_url, 'participant/')
 create_user_url = urljoin(root_url, 'participant/register/')
+create_question_url = urljoin(root_url, 'question/create/')
 
 
 def fetch_schedule_from_db() -> dict:
@@ -39,6 +40,18 @@ def fetch_meeting_from_db(meeting_id) -> dict:
     return response.json()
 
 
-def participant_is_in_db(participant_telegram_id: int) -> bool:
-    response = requests.get(f'{participant_url}{participant_telegram_id}')
+def get_participant_name_from_db(telegram_id: int or str) -> str:
+    response = requests.get(f'{participant_url}{telegram_id}')
+    response.raise_for_status()
+    return response.json()['name']
+
+
+def participant_is_in_db(telegram_id: int or str) -> bool:
+    response = requests.get(f'{participant_url}{telegram_id}')
     return response.ok
+
+
+def send_question_to_db(question: dict):
+    response = requests.post(create_question_url, data=question)
+    response.raise_for_status()
+

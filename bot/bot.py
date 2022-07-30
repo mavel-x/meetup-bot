@@ -112,6 +112,7 @@ def send_user_to_db(update: Update, context: CallbackContext):
         'company': context.chat_data['company'],
     }
 
+    # TODO move into separate function in db_interactions file
     response = requests.post(create_user_url, data=user)
     response.raise_for_status()
     update.effective_chat.send_message(text='Регистрация успешна. Приятного мероприятия!')
@@ -249,9 +250,10 @@ def request_question_text(update: Update, context: CallbackContext):
     """Store selected speaker and ask user to send their question to the bot"""
     query = update.callback_query
     query.answer()
-    context.chat_data['speaker'] = speaker_id = query.data.split('_')[1]
+    context.chat_data['speaker_id'] = speaker_id = query.data.split('_')[1]
+    context.chat_data['speaker_name'] = speaker_name = get_participant_name_from_db(speaker_id)
 
-    query.edit_message_text(f'All right. Please send me the question for {speaker_id}. You are now in the AWAIT_QUESTION stage.')
+    query.edit_message_text(f'All right. Please send me the question for {speaker_name}. You are now in the AWAIT_QUESTION stage.')
 
     return AWAIT_QUESTION
 
@@ -262,13 +264,28 @@ def confirm_sending_question(update: Update, context: CallbackContext):
     pass
 
 
-def send_question_to_speaker(update: Update, context: CallbackContext):
-    """Send question to the database with the user id of the speaker, ideally the question is an dict
-    with data about the asking user and the message id of the question so that the
-    answer can be sent as a reply to the user's message.
-    """
-    # TODO retrieve the message id of the question and send it along with the question's text
-    update.message.reply_text(f'Question to send: {update.message.text}.\n\nSpeaker selected: {context.chat_data["speaker"]}')
+def send_question_to_speaker_and_db(update: Update, context: CallbackContext):
+    """Send question to the speaker and to the database"""
+    question_text = update.message.text
+    question_message_id = update.message.message_id
+    speaker_id = context.chat_data['speaker_id']
+    speaker_name = context.chat_data['speaker_name']
+    participant_name = get_participant_name_from_db(update.effective_user.id)
+    question_text_with_headers = (f"Question #{question_message_id} "
+                                  f"from {participant_name}:\n\n"
+                                  f"{question_text}")
+    question = {
+        'question': question_text,
+        'question_message_id': question_message_id,
+        'speaker_telegram_id': speaker_id,
+        'participant_telegram_id': update.effective_user.id,
+    }
+    send_question_to_db(question)
+    context.bot.send_message(
+        chat_id=speaker_id,
+        text=question_text_with_headers,
+    )
+    update.message.reply_text(f'Question "{question}" sent to speaker "{speaker_name}"')
     return offer_to_choose_schedule_or_question(update, context)
 
 # the user receives an answer through a separate script in ./notifications
@@ -334,7 +351,7 @@ def main():
                 CallbackQueryHandler(request_question_text, pattern=r'^speaker_\d+$'),
                 # TODO the CallbackQueryHandler for the "Answer" button under a question received by the speaker can live here too
             ],
-            AWAIT_QUESTION: [MessageHandler(Filters.text & ~Filters.command, send_question_to_speaker)],
+            AWAIT_QUESTION: [MessageHandler(Filters.text & ~Filters.command, send_question_to_speaker_and_db)],
             AWAIT_ANSWER: [MessageHandler(Filters.text & ~Filters.command, send_answer_to_participant)],
         },
         fallbacks=[
