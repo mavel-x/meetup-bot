@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
@@ -91,11 +90,13 @@ def get_meeting(request, meeting_id):
 def create_question(request):
     participant_telegram_id = request.POST.get('participant_telegram_id', 0)
     speaker_telegram_id = request.POST.get('speaker_telegram_id', 0)
+    question_message_id = request.POST.get('question_message_id', 0)
     question = request.POST.get('question', '')
     participant = get_object_or_404(Participant, telegram_id=participant_telegram_id)
     speaker = get_object_or_404(Participant, telegram_id=speaker_telegram_id)
     question, created = Question.objects.get_or_create(
         question=question,
+        question_message_id=question_message_id,
         participant=participant,
         speaker=speaker
     )
@@ -107,8 +108,8 @@ def create_question(request):
 
 
 @csrf_exempt
-def add_answer_to_question(request, question_id):
-    question = get_object_or_404(Question, pk=question_id)
+def add_answer_to_question(request, question_message_id):
+    question = get_object_or_404(Question, question_message_id=question_message_id)
     question.answer = request.POST.get('answer', '')
     question.save()
     return JsonResponse(
