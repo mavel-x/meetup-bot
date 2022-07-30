@@ -147,7 +147,7 @@ def send_schedule_to_user(update: Update, context: CallbackContext) -> int:
     return offer_to_choose_schedule_or_question(update, context)
 
 
-def show_sections_for_question(update: Update, context: CallbackContext):
+def show_sections_for_question(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     query.answer()
     sections = fetch_sections_from_db()
@@ -170,7 +170,7 @@ def show_sections_for_question(update: Update, context: CallbackContext):
     query.edit_message_text('Please choose a section:', reply_markup=reply_markup)
 
 
-def show_meetings_for_question(update: Update, context: CallbackContext):
+def show_meetings_for_question(update: Update, context: CallbackContext) -> None:
     """Store selected section and show a list of meetings"""
     query = update.callback_query
     query.answer()
@@ -196,7 +196,7 @@ def show_meetings_for_question(update: Update, context: CallbackContext):
     query.edit_message_text('Please choose a meeting:', reply_markup=reply_markup)
 
 
-def show_speakers_for_question(update: Update, context: CallbackContext):
+def show_speakers_for_question(update: Update, context: CallbackContext) -> None:
     """Store selected meeting and show a list of speakers on an inline keyboard"""
     query = update.callback_query
     query.answer()
