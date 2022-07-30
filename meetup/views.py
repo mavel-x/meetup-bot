@@ -77,6 +77,7 @@ def get_meeting(request, meeting_id):
         })
     context = {
         'title': meeting.title,
+        'content': meeting.content,
         'speakers': speakers
     }
     return JsonResponse(
