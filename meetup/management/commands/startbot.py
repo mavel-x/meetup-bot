@@ -14,6 +14,7 @@ from telegram.ext import (
 from meetup.models import Participant, Section, Meeting, Question
 from django.views.decorators.csrf import csrf_exempt
 from django.core.management.base import BaseCommand
+import meetup.management.commands._strings as strings
 
 
 logging.basicConfig(
@@ -36,7 +37,7 @@ logger = logging.getLogger(__name__)
 def start(update: Update, context: CallbackContext) -> int:
     context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Dummy start text."
+        text=strings.start
     )
 
     try:
