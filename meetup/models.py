@@ -47,6 +47,7 @@ class Meeting(models.Model):
 
 class Question(models.Model):
     question = models.TextField(verbose_name='Вопрос')
+    question_message_id = models.IntegerField(blank=True, verbose_name='ID сообщения в Telegram')
     answer = models.TextField(blank=True, verbose_name='Ответ')
     participant = models.ForeignKey(Participant, related_name='questions',
                                     verbose_name='Кто задал?',
