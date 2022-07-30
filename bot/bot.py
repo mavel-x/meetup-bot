@@ -29,8 +29,7 @@ logger = logging.getLogger(__name__)
     AWAIT_CONFIRMATION,
     CHOOSE_SCHEDULE_OR_QUESTION,
     AWAIT_QUESTION,
-    AWAIT_ANSWER,
-) = range(7)
+) = range(6)
 
 
 def start(update: Update, context: CallbackContext) -> int:
@@ -54,10 +53,8 @@ def start(update: Update, context: CallbackContext) -> int:
 
 
 def request_full_name(update: Update, context: CallbackContext) -> int:
-    """Ask the user to send their full name"""
     query = update.callback_query
     query.answer()
-
     query.edit_message_text(f'Query text: {query.data}. You are now in the AWAIT_NAME stage. Enter full name.')
     return AWAIT_NAME
 
@@ -86,7 +83,7 @@ def request_company_name(update: Update, context: CallbackContext) -> int:
 def confirm_company_name(update: Update, context: CallbackContext) -> int:
     """Ask user to confirm company name they just entered or return to previous step"""
 
-    # Same check as in request_company_name(), can be refactored.
+    # Same check as in request_company_name(), can be refactored to be more self-descriptive.
     if update.message:
         context.chat_data['company'] = update.message.text
 
@@ -102,21 +99,18 @@ def confirm_company_name(update: Update, context: CallbackContext) -> int:
     return AWAIT_CONFIRMATION
 
 
-def send_user_to_db(update: Update, context: CallbackContext):
+def complete_registration(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
-
     user = {
         'telegram_id': update.effective_user.id,
         'name': context.chat_data['full_name'],
         'company': context.chat_data['company'],
     }
+    send_user_to_db(user)
 
-    # TODO move into separate function in db_interactions file
-    response = requests.post(create_user_url, data=user)
-    response.raise_for_status()
-    update.effective_chat.send_message(text='Регистрация успешна. Приятного мероприятия!')
-    query.edit_message_text(f'User registered: {user}.')
+    query.edit_message_text('Регистрация успешна. Приятного мероприятия!')
+    update.effective_chat.send_message(text=f'User registered: {user}.')
 
     return offer_to_choose_schedule_or_question(update, context)
 
@@ -130,6 +124,14 @@ def offer_to_choose_schedule_or_question(update: Update, context: CallbackContex
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
+
+    # If we came here through pressing "Okay" after choosing a meeting with no speakers,
+    # delete the message saying "No speakers"
+    if update.callback_query:
+        update.callback_query.answer()
+        if update.callback_query.data == 'back_to_start':
+            update.callback_query.delete_message()
+
     update.effective_chat.send_message('You are now in the CHOOSE_SCH_OR_Q stage. Please choose:', reply_markup=reply_markup)
     return CHOOSE_SCHEDULE_OR_QUESTION
 
@@ -185,9 +187,6 @@ def show_meetings_in_section_to_user(update: Update, context: CallbackContext) -
 
 
 def show_schedule_to_user(update: Update, context: CallbackContext, meeting_id) -> int:
-    """Send the schedule when the user requests it.
-    The script in ./notifications is for mass sending by admins.
-    """
     query = update.callback_query
     meeting = fetch_meeting_from_db(meeting_id)
     message_text = f"{meeting['title']}:\n\n{meeting['content']}"
@@ -226,7 +225,7 @@ def show_speakers_for_question(update: Update, context: CallbackContext, meeting
     else:
         message_text = 'No speakers for this event.'
         keyboard = [
-            [InlineKeyboardButton('Okay.', callback_data='cancel')]
+            [InlineKeyboardButton('Okay.', callback_data='back_to_start')]
         ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     query.edit_message_text(message_text, reply_markup=reply_markup)
@@ -271,9 +270,10 @@ def send_question_to_speaker_and_db(update: Update, context: CallbackContext):
     speaker_id = context.chat_data['speaker_id']
     speaker_name = context.chat_data['speaker_name']
     participant_name = get_participant_name_from_db(update.effective_user.id)
-    question_text_with_headers = (f"Question #{question_message_id} "
-                                  f"from {participant_name}:\n\n"
-                                  f"{question_text}")
+    question_text_formatted = (f"Question #{question_message_id} "
+                               f"from {participant_name} ({update.effective_user.id}):\n\n"
+                               f"{question_text}\n\n"
+                               f"To answer, simply send me a reply to this message.")
     question = {
         'question': question_text,
         'question_message_id': question_message_id,
@@ -283,27 +283,28 @@ def send_question_to_speaker_and_db(update: Update, context: CallbackContext):
     send_question_to_db(question)
     context.bot.send_message(
         chat_id=speaker_id,
-        text=question_text_with_headers,
+        text=question_text_formatted,
     )
     update.message.reply_text(f'Question "{question}" sent to speaker "{speaker_name}"')
     return offer_to_choose_schedule_or_question(update, context)
 
-# the user receives an answer through a separate script in ./notifications
 
+def send_answer_to_participant(update: Update, context: CallbackContext):
+    question = update.message.reply_to_message
+    if not question.text.startswith('Question #'):
+        return
+    answer = update.message.text
+    answer_formatted = f"Answer from speaker:\n\n{answer}"
+    question_message_id = question.text.partition('#')[2].partition(' ')[0]
+    asking_participant_id = question.text.partition('(')[2].partition(')')[0]
 
-# the following 2 functions are for speakers:
-def request_answer(question):
-    """When a speaker taps the inline button 'Answer' under one of the questions,
-    ask them to send the answer.
-    """
-    return AWAIT_ANSWER
+    send_answer_to_db(answer, question_message_id)
 
-
-def send_answer_to_participant(answer, question):
-    # TODO get the user_id of the asking user from the question object
-    # TODO get the message_id of the question to reply to
-    # TODO either import and call the function from script or run the script in ./notifications
-    pass
+    context.bot.send_message(
+        chat_id=asking_participant_id,
+        text=answer_formatted,
+        reply_to_message_id=question_message_id,
+    )
 
 
 def cancel(update: Update, context: CallbackContext) -> int:
@@ -338,10 +339,9 @@ def main():
             ],
             AWAIT_CONFIRMATION: [
                 CallbackQueryHandler(request_company_name, pattern='^back_to_company$'),
-                CallbackQueryHandler(send_user_to_db, pattern='^confirm$')
+                CallbackQueryHandler(complete_registration, pattern='^confirm$')
             ],
             CHOOSE_SCHEDULE_OR_QUESTION: [
-                # CallbackQueryHandler(send_schedule_to_user, pattern=r'^schedule$'),
                 CallbackQueryHandler(
                     show_sections_to_user,
                     pattern=r'^question$|^schedule$'
@@ -349,13 +349,13 @@ def main():
                 CallbackQueryHandler(show_meetings_in_section_to_user, pattern=r'^section_\d+$'),
                 CallbackQueryHandler(show_speakers_keyboard_or_schedule, pattern=r'^meeting_\d+$'),
                 CallbackQueryHandler(request_question_text, pattern=r'^speaker_\d+$'),
-                # TODO the CallbackQueryHandler for the "Answer" button under a question received by the speaker can live here too
+                MessageHandler(Filters.reply & ~Filters.command, send_answer_to_participant)
             ],
             AWAIT_QUESTION: [MessageHandler(Filters.text & ~Filters.command, send_question_to_speaker_and_db)],
-            AWAIT_ANSWER: [MessageHandler(Filters.text & ~Filters.command, send_answer_to_participant)],
         },
         fallbacks=[
             CallbackQueryHandler(cancel, pattern=r'^cancel$'),
+            CallbackQueryHandler(offer_to_choose_schedule_or_question, pattern=r'back_to_start'),
             MessageHandler(Filters.text, help),
         ]
     )
@@ -368,4 +368,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

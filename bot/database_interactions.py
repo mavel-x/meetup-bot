@@ -9,6 +9,7 @@ speakers_url = urljoin(root_url, 'meeting/')
 participant_url = urljoin(root_url, 'participant/')
 create_user_url = urljoin(root_url, 'participant/register/')
 create_question_url = urljoin(root_url, 'question/create/')
+add_answer_url = urljoin(root_url, 'question/{question_message_id}/add_answer/')
 
 
 def fetch_schedule_from_db() -> dict:
@@ -55,3 +56,13 @@ def send_question_to_db(question: dict):
     response = requests.post(create_question_url, data=question)
     response.raise_for_status()
 
+
+def send_answer_to_db(answer, question_id):
+    url = add_answer_url.format(question_message_id=question_id)
+    response = requests.post(url, data={'answer': answer})
+    response.raise_for_status()
+
+
+def send_user_to_db(user: dict):
+    response = requests.post(create_user_url, data=user)
+    response.raise_for_status()
