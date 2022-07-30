@@ -32,7 +32,7 @@ def notify_speakers_about_appointment_to_meeting(sender, instance, action, rever
         notification = f'Вас назначили спикером на мероприятие «{instance.title}» в секции «{instance.section.title}»'
     elif action == 'post_remove':
         notification = f'Вас удалили из спикеров на мероприятии «{instance.title}» в секции «{instance.section.title}»'
-    if notification not in locals():
+    if 'notification' not in locals():
         return
     for speaker_id in pk_set:
         pass
