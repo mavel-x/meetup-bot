@@ -133,23 +133,10 @@ def offer_to_choose_schedule_or_question(update: Update, context: CallbackContex
     return CHOOSE_SCHEDULE_OR_QUESTION
 
 
-def send_schedule_to_user(update: Update, context: CallbackContext) -> int:
-    """Send the schedule when the user requests it.
-    The script in ./notifications is for mass sending by admins.
-    """
+def show_sections_to_user(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     query.answer()
-
-    # schedule = fetch_schedule_from_db()
-
-    update.effective_chat.send_message('Here is a dummy schedule.')
-
-    return offer_to_choose_schedule_or_question(update, context)
-
-
-def show_sections_for_question(update: Update, context: CallbackContext) -> None:
-    query = update.callback_query
-    query.answer()
+    context.chat_data['branch'] = query.data
     sections = fetch_sections_from_db()
 
     keyboard = []
@@ -170,7 +157,7 @@ def show_sections_for_question(update: Update, context: CallbackContext) -> None
     query.edit_message_text('Please choose a section:', reply_markup=reply_markup)
 
 
-def show_meetings_for_question(update: Update, context: CallbackContext) -> None:
+def show_meetings_in_section_to_user(update: Update, context: CallbackContext) -> None:
     """Store selected section and show a list of meetings"""
     query = update.callback_query
     query.answer()
@@ -196,14 +183,21 @@ def show_meetings_for_question(update: Update, context: CallbackContext) -> None
     query.edit_message_text('Please choose a meeting:', reply_markup=reply_markup)
 
 
-def show_speakers_for_question(update: Update, context: CallbackContext) -> None:
-    """Store selected meeting and show a list of speakers on an inline keyboard"""
+def show_schedule_to_user(update: Update, context: CallbackContext, meeting_id) -> int:
+    """Send the schedule when the user requests it.
+    The script in ./notifications is for mass sending by admins.
+    """
     query = update.callback_query
-    query.answer()
-    context.chat_data['meeting'] = selection = query.data
-    meeting_id = selection.split('_')[1]
-    speakers = fetch_speakers_for_meeting_from_db(meeting_id)
+    meeting = fetch_meeting_from_db(meeting_id)
+    message_text = f"{meeting['title']}:\n\n{meeting['content']}"
+    query.edit_message_text(message_text)
+    context.chat_data['branch'] = None
+    return offer_to_choose_schedule_or_question(update, context)
 
+
+def show_speakers_for_question(update: Update, context: CallbackContext, meeting_id):
+    query = update.callback_query
+    speakers = fetch_meeting_from_db(meeting_id)['speakers']
     keyboard = []
     row = []
     if speakers:
@@ -233,18 +227,31 @@ def show_speakers_for_question(update: Update, context: CallbackContext) -> None
         keyboard = [
             [InlineKeyboardButton('Okay.', callback_data='cancel')]
         ]
-
     reply_markup = InlineKeyboardMarkup(keyboard)
     query.edit_message_text(message_text, reply_markup=reply_markup)
+    context.chat_data['branch'] = None
+
+
+def show_speakers_keyboard_or_schedule(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.answer()
+    context.chat_data['meeting'] = selection = query.data
+    meeting_id = selection.split('_')[1]
+
+    if context.chat_data['branch'] == 'question':
+        show_speakers_for_question(update, context, meeting_id)
+
+    else:
+        return show_schedule_to_user(update, context, meeting_id)
 
 
 def request_question_text(update: Update, context: CallbackContext):
     """Store selected speaker and ask user to send their question to the bot"""
     query = update.callback_query
     query.answer()
-    context.chat_data['speaker'] = query.data
+    context.chat_data['speaker'] = speaker_id = query.data.split('_')[1]
 
-    query.edit_message_text(f'All right. Please send me the question for {query.data}. You are now in the AWAIT_QUESTION stage.')
+    query.edit_message_text(f'All right. Please send me the question for {speaker_id}. You are now in the AWAIT_QUESTION stage.')
 
     return AWAIT_QUESTION
 
@@ -317,13 +324,13 @@ def main():
                 CallbackQueryHandler(send_user_to_db, pattern='^confirm$')
             ],
             CHOOSE_SCHEDULE_OR_QUESTION: [
-                CallbackQueryHandler(send_schedule_to_user, pattern=r'^schedule$'),
+                # CallbackQueryHandler(send_schedule_to_user, pattern=r'^schedule$'),
                 CallbackQueryHandler(
-                    show_sections_for_question,
-                    pattern=r'^question$'
+                    show_sections_to_user,
+                    pattern=r'^question$|^schedule$'
                 ),
-                CallbackQueryHandler(show_meetings_for_question, pattern=r'^section_\d+$'),
-                CallbackQueryHandler(show_speakers_for_question, pattern=r'^meeting_\d+$'),
+                CallbackQueryHandler(show_meetings_in_section_to_user, pattern=r'^section_\d+$'),
+                CallbackQueryHandler(show_speakers_keyboard_or_schedule, pattern=r'^meeting_\d+$'),
                 CallbackQueryHandler(request_question_text, pattern=r'^speaker_\d+$'),
                 # TODO the CallbackQueryHandler for the "Answer" button under a question received by the speaker can live here too
             ],
