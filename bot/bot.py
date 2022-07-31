@@ -13,7 +13,7 @@ from telegram.ext import (
     Updater,
 )
 
-from meetup.management.commands import _strings
+import meetup.management.commands._strings as strings
 from database_interactions import *
 
 logging.basicConfig(
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 def start(update: Update, context: CallbackContext) -> int:
     context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=_strings.start
+        text=strings.start
     )
 
     user_id = update.effective_user.id
@@ -45,18 +45,18 @@ def start(update: Update, context: CallbackContext) -> int:
 
     keyboard = [
         [
-            InlineKeyboardButton(_strings.register_button, callback_data='register')
+            InlineKeyboardButton(strings.register_button, callback_data='register')
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text(_strings.register_message, reply_markup=reply_markup)
+    update.message.reply_text(strings.register_message, reply_markup=reply_markup)
     return AWAIT_REGISTRATION
 
 
 def request_full_name(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
     query.answer()
-    query.edit_message_text(_strings.ask_name)
+    query.edit_message_text(strings.ask_name)
     return AWAIT_NAME
 
 
@@ -69,11 +69,11 @@ def request_company_name(update: Update, context: CallbackContext) -> int:
         context.chat_data['full_name'] = update.message.text
 
     keyboard = [
-        [InlineKeyboardButton(_strings.back_button, callback_data='back_to_name')],
+        [InlineKeyboardButton(strings.back_button, callback_data='back_to_name')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.effective_chat.send_message(
-        _strings.ask_company_name,
+        strings.ask_company_name,
         reply_markup=reply_markup
     )
     return AWAIT_COMPANY
@@ -88,12 +88,12 @@ def confirm_company_name(update: Update, context: CallbackContext) -> int:
         context.chat_data['company'] = update.message.text
 
     keyboard = [
-        [InlineKeyboardButton(_strings.confirm_button, callback_data='confirm')],
-        [InlineKeyboardButton(_strings.back_button, callback_data='back_to_company')],
+        [InlineKeyboardButton(strings.confirm_button, callback_data='confirm')],
+        [InlineKeyboardButton(strings.back_button, callback_data='back_to_company')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.effective_chat.send_message(
-        _strings.confirm_registration,
+        strings.confirm_registration,
         reply_markup=reply_markup
     )
     return AWAIT_CONFIRMATION
@@ -108,7 +108,7 @@ def complete_registration(update: Update, context: CallbackContext):
         'company': context.chat_data['company'],
     }
     send_user_to_db(user)
-    query.edit_message_text(_strings.successful_registration)
+    query.edit_message_text(strings.successful_registration)
     return offer_to_choose_schedule_or_question(update, context)
 
 
@@ -116,8 +116,8 @@ def offer_to_choose_schedule_or_question(update: Update, context: CallbackContex
     """Display two inline buttons: Schedule and Ask a question"""
     keyboard = [
         [
-            InlineKeyboardButton(_strings.schedule_button, callback_data='schedule'),
-            InlineKeyboardButton(_strings.question_button, callback_data='question'),
+            InlineKeyboardButton(strings.schedule_button, callback_data='schedule'),
+            InlineKeyboardButton(strings.question_button, callback_data='question'),
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -129,7 +129,7 @@ def offer_to_choose_schedule_or_question(update: Update, context: CallbackContex
         if update.callback_query.data == 'back_to_start':
             update.callback_query.delete_message()
 
-    update.effective_chat.send_message(_strings.choose_sch_or_q, reply_markup=reply_markup)
+    update.effective_chat.send_message(strings.choose_sch_or_q, reply_markup=reply_markup)
     return CHOOSE_SCHEDULE_OR_QUESTION
 
 
@@ -150,10 +150,10 @@ def show_sections_to_user(update: Update, context: CallbackContext) -> None:
         if len(keyboard[-1]) > 1:
             keyboard.append([])
 
-    keyboard.append([InlineKeyboardButton(_strings.cancel_button, callback_data='cancel')])
+    keyboard.append([InlineKeyboardButton(strings.cancel_button, callback_data='cancel')])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-    query.edit_message_text(_strings.choose_section, reply_markup=reply_markup)
+    query.edit_message_text(strings.choose_section, reply_markup=reply_markup)
 
 
 def show_meetings_in_section_to_user(update: Update, context: CallbackContext) -> None:
@@ -174,10 +174,10 @@ def show_meetings_in_section_to_user(update: Update, context: CallbackContext) -
         )
         if len(keyboard[-1]) > 1:
             keyboard.append([])
-    keyboard.append([InlineKeyboardButton(_strings.cancel_button, callback_data='cancel')])
+    keyboard.append([InlineKeyboardButton(strings.cancel_button, callback_data='cancel')])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    query.edit_message_text(_strings.choose_meeting, reply_markup=reply_markup)
+    query.edit_message_text(strings.choose_meeting, reply_markup=reply_markup)
 
 
 def show_schedule_to_user(update: Update, context: CallbackContext, meeting_id) -> int:
@@ -194,7 +194,7 @@ def show_speakers_for_question(update: Update, context: CallbackContext, meeting
     speakers = fetch_meeting_from_db(meeting_id)['speakers']
 
     if speakers:
-        message_text = _strings.choose_speaker
+        message_text = strings.choose_speaker
         keyboard = [[]]
         for speaker in speakers:
             keyboard[-1].append(
@@ -205,12 +205,12 @@ def show_speakers_for_question(update: Update, context: CallbackContext, meeting
             )
             if len(keyboard[-1]) > 1:
                 keyboard.append([])
-        keyboard.append([InlineKeyboardButton(_strings.cancel_button, callback_data='cancel')])
+        keyboard.append([InlineKeyboardButton(strings.cancel_button, callback_data='cancel')])
 
     else:
-        message_text = _strings.no_speakers
+        message_text = strings.no_speakers
         keyboard = [
-            [InlineKeyboardButton(_strings.back_to_start_button, callback_data='back_to_start')]
+            [InlineKeyboardButton(strings.back_to_start_button, callback_data='back_to_start')]
         ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     query.edit_message_text(message_text, reply_markup=reply_markup)
@@ -239,7 +239,7 @@ def request_question_text(update: Update, context: CallbackContext):
     query.answer()
     context.chat_data['speaker_id'] = speaker_id = query.data.split('_')[1]
     context.chat_data['speaker_name'] = get_participant_name_from_db(speaker_id)
-    query.edit_message_text(_strings.request_question)
+    query.edit_message_text(strings.request_question)
     return AWAIT_QUESTION
 
 
@@ -256,7 +256,7 @@ def send_question_to_speaker_and_db(update: Update, context: CallbackContext):
     speaker_id = context.chat_data['speaker_id']
     speaker_name = context.chat_data['speaker_name']
     participant_name = get_participant_name_from_db(update.effective_user.id)
-    question_text_formatted = _strings.question_text_formatted.format(
+    question_text_formatted = strings.question_text_formatted.format(
         question_message_id=question_message_id,
         participant_name=participant_name,
         user_id=update.effective_user.id,
@@ -274,18 +274,18 @@ def send_question_to_speaker_and_db(update: Update, context: CallbackContext):
             chat_id=speaker_id,
             text=question_text_formatted,
         )
-        update.message.reply_text(_strings.question_sent.format(speaker_name=speaker_name))
+        update.message.reply_text(strings.question_sent.format(speaker_name=speaker_name))
     except error.BadRequest:
-        update.message.reply_text(_strings.question_send_error)
+        update.message.reply_text(strings.question_send_error)
     return offer_to_choose_schedule_or_question(update, context)
 
 
 def send_answer_to_participant(update: Update, context: CallbackContext):
     question = update.message.reply_to_message
-    if not question.text.startswith(_strings.question_text_formatted.partition('#')[0]):
+    if not question.text.startswith(strings.question_text_formatted.partition('#')[0]):
         return
     answer = update.message.text
-    answer_formatted = _strings.answer_formatted.format(answer=answer)
+    answer_formatted = strings.answer_formatted.format(answer=answer)
     question_message_id = question.text.partition('#')[2].partition(' ')[0]
     asking_participant_id = question.text.partition('(')[2].partition(')')[0]
 
@@ -303,13 +303,13 @@ def cancel(update: Update, context: CallbackContext) -> int:
     """Cancel the current operation and offer to choose schedule or question."""
     query = update.callback_query
     query.answer()
-    query.edit_message_text(_strings.cancelled)
+    query.edit_message_text(strings.cancelled)
     return offer_to_choose_schedule_or_question(update, context)
 
 
 def help(update: Update, context: CallbackContext):
     """Send help text"""
-    update.effective_chat.send_message(_strings.help_message)
+    update.effective_chat.send_message(strings.help_message)
 
 
 def main():
