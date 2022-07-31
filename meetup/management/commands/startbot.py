@@ -60,6 +60,7 @@ def request_full_name(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
     query.answer()
     query.edit_message_text(strings.ask_name)
+    context.chat_data['message_to_delete'] = query.message.message_id
     return AWAIT_NAME
 
 
@@ -71,14 +72,29 @@ def request_company_name(update: Update, context: CallbackContext) -> int:
     if update.message:
         context.chat_data['full_name'] = update.message.text
 
+    if 'message_to_delete' in context.chat_data:
+        context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=context.chat_data['message_to_delete']
+        )
+        del context.chat_data['message_to_delete']
+
     keyboard = [
         [InlineKeyboardButton(strings.back_button, callback_data='back_to_name')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.effective_chat.send_message(
-        strings.ask_company_name,
-        reply_markup=reply_markup
-    )
+    if update.callback_query:
+        update.callback_query.edit_message_text(
+            strings.ask_company_name,
+            reply_markup=reply_markup
+        )
+        context.chat_data['message_to_delete'] = update.callback_query.message.message_id
+    else:
+        company_message = update.effective_chat.send_message(
+            strings.ask_company_name,
+            reply_markup=reply_markup,
+        )
+        context.chat_data['message_to_delete'] = company_message.message_id
     return AWAIT_COMPANY
 
 
@@ -89,6 +105,13 @@ def confirm_company_name(update: Update, context: CallbackContext) -> int:
     # If we came back from the confirmation step, there will be no update.message.
     if update.message:
         context.chat_data['company'] = update.message.text
+
+    if 'message_to_delete' in context.chat_data:
+        context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=context.chat_data['message_to_delete']
+        )
+        del context.chat_data['message_to_delete']
 
     keyboard = [
         [InlineKeyboardButton(strings.confirm_button, callback_data='confirm')],
