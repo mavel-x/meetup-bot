@@ -344,15 +344,14 @@ def send_answer_to_participant(update: Update, context: CallbackContext):
         question_from_db = Question.objects.get(question_message_id=question_message_id)
         question_from_db.answer = answer
         question_from_db.save()
+        context.bot.send_message(
+            chat_id=asking_participant_id,
+            text=answer_formatted,
+            reply_to_message_id=question_message_id,
+            allow_sending_without_reply=True,
+        )
     except Question.DoesNotExist:
         update.message.reply_text(strings.database_error)
-
-    context.bot.send_message(
-        chat_id=asking_participant_id,
-        text=answer_formatted,
-        reply_to_message_id=question_message_id,
-        allow_sending_without_reply=True,
-    )
 
 
 def cancel(update: Update, context: CallbackContext) -> int:
