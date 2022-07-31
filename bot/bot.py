@@ -2,7 +2,7 @@ import logging
 import os
 
 from dotenv import load_dotenv
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Bot
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, error
 from telegram.ext import (
     CallbackContext,
     CallbackQueryHandler,
@@ -142,18 +142,17 @@ def show_sections_to_user(update: Update, context: CallbackContext) -> None:
     context.chat_data['branch'] = query.data
     sections = fetch_sections_from_db()
 
-    keyboard = []
-    row = []
+    keyboard = [[]]
     for section in sections:
-        row.append(
+        keyboard[-1].append(
             InlineKeyboardButton(
                 section['title'],
                 callback_data=f"section_{section['id']}"
             )
         )
-        if len(row) > 1:
-            keyboard.append(row.copy())
-            row.clear()
+        if len(keyboard[-1]) > 1:
+            keyboard.append([])
+
     keyboard.append([InlineKeyboardButton("Cancel", callback_data='cancel')])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -168,18 +167,16 @@ def show_meetings_in_section_to_user(update: Update, context: CallbackContext) -
     section_id = selection.split('_')[1]
     meetings = fetch_meetings_for_section_from_db(section_id)
 
-    keyboard = []
-    row = []
+    keyboard = [[]]
     for meeting in meetings:
-        row.append(
+        keyboard[-1].append(
             InlineKeyboardButton(
                 meeting['title'],
                 callback_data=f"meeting_{meeting['id']}"
             )
         )
-        if len(row) > 1:
-            keyboard.append(row.copy())
-            row.clear()
+        if len(keyboard[-1]) > 1:
+            keyboard.append([])
     keyboard.append([InlineKeyboardButton("Cancel", callback_data='cancel')])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -198,28 +195,19 @@ def show_schedule_to_user(update: Update, context: CallbackContext, meeting_id) 
 def show_speakers_for_question(update: Update, context: CallbackContext, meeting_id):
     query = update.callback_query
     speakers = fetch_meeting_from_db(meeting_id)['speakers']
-    keyboard = []
-    row = []
+
     if speakers:
         message_text = 'Please choose a speaker:'
-        if len(speakers) == 1:
-            keyboard = [
-                [InlineKeyboardButton(
-                    speakers[0]['name'],
-                    callback_data=f"speaker_{speakers[0]['telegram_id']}"
-                )]
-            ]
-        else:
-            for speaker in speakers:
-                row.append(
-                    InlineKeyboardButton(
-                        speaker['name'],
-                        callback_data=f"speaker_{speaker['telegram_id']}"
-                    )
+        keyboard = [[]]
+        for speaker in speakers:
+            keyboard[-1].append(
+                InlineKeyboardButton(
+                    speaker['name'],
+                    callback_data=f"speaker_{speaker['telegram_id']}"
                 )
-                if len(row) > 1:
-                    keyboard.append(row.copy())
-                    row.clear()
+            )
+            if len(keyboard[-1]) > 1:
+                keyboard.append([])
         keyboard.append([InlineKeyboardButton("Cancel", callback_data='cancel')])
 
     else:
@@ -281,11 +269,14 @@ def send_question_to_speaker_and_db(update: Update, context: CallbackContext):
         'participant_telegram_id': update.effective_user.id,
     }
     send_question_to_db(question)
-    context.bot.send_message(
-        chat_id=speaker_id,
-        text=question_text_formatted,
-    )
-    update.message.reply_text(f'Question "{question}" sent to speaker "{speaker_name}"')
+    try:
+        context.bot.send_message(
+            chat_id=speaker_id,
+            text=question_text_formatted,
+        )
+        update.message.reply_text(f'Question "{question}" sent to speaker "{speaker_name}"')
+    except error.BadRequest:
+        update.message.reply_text(f'There was an error sending your question. Please try again or contact support.')
     return offer_to_choose_schedule_or_question(update, context)
 
 
@@ -349,14 +340,18 @@ def main():
                 CallbackQueryHandler(show_meetings_in_section_to_user, pattern=r'^section_\d+$'),
                 CallbackQueryHandler(show_speakers_keyboard_or_schedule, pattern=r'^meeting_\d+$'),
                 CallbackQueryHandler(request_question_text, pattern=r'^speaker_\d+$'),
-                MessageHandler(Filters.reply & ~Filters.command, send_answer_to_participant)
             ],
-            AWAIT_QUESTION: [MessageHandler(Filters.text & ~Filters.command, send_question_to_speaker_and_db)],
+            AWAIT_QUESTION: [MessageHandler(
+                Filters.text & ~Filters.command & ~Filters.reply,
+                send_question_to_speaker_and_db
+            )],
         },
         fallbacks=[
             CallbackQueryHandler(cancel, pattern=r'^cancel$'),
             CallbackQueryHandler(offer_to_choose_schedule_or_question, pattern=r'back_to_start'),
+            MessageHandler(Filters.reply & ~Filters.command, send_answer_to_participant),
             MessageHandler(Filters.text, help),
+
         ]
     )
 
