@@ -13,6 +13,7 @@ from telegram.ext import (
     Updater,
 )
 
+from meetup.management.commands import _strings
 from database_interactions import *
 
 logging.basicConfig(
@@ -35,7 +36,7 @@ logger = logging.getLogger(__name__)
 def start(update: Update, context: CallbackContext) -> int:
     context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="Dummy start text."
+        text=_strings.start
     )
 
     user_id = update.effective_user.id
@@ -44,18 +45,18 @@ def start(update: Update, context: CallbackContext) -> int:
 
     keyboard = [
         [
-            InlineKeyboardButton("Register", callback_data='register')
+            InlineKeyboardButton(_strings.register_button, callback_data='register')
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text('You are now in the AWAIT_REGISTRATION stage. Press the button:', reply_markup=reply_markup)
+    update.message.reply_text(_strings.register_message, reply_markup=reply_markup)
     return AWAIT_REGISTRATION
 
 
 def request_full_name(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
     query.answer()
-    query.edit_message_text(f'Query text: {query.data}. You are now in the AWAIT_NAME stage. Enter full name.')
+    query.edit_message_text(_strings.ask_name)
     return AWAIT_NAME
 
 
@@ -63,37 +64,36 @@ def request_company_name(update: Update, context: CallbackContext) -> int:
     """Store full name and ask the user to send the name of their company"""
 
     # This checks if we came here from entering full name or from pressing "Back" in the next step.
-    # If we came back from the confirmation step, there will be no update.message. This can be refactored into
-    # something more self-describing later.
+    # If we came back from the confirmation step, there will be no update.message.
     if update.message:
         context.chat_data['full_name'] = update.message.text
 
     keyboard = [
-        [InlineKeyboardButton("Back", callback_data='back_to_name')],
+        [InlineKeyboardButton(_strings.back_button, callback_data='back_to_name')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.effective_chat.send_message(
-        f'Full name stored: {context.chat_data["full_name"]}. You are now in the AWAIT_COMPANY stage. Enter company name or press Back to reenter full name.',
+        _strings.ask_company_name,
         reply_markup=reply_markup
     )
-
     return AWAIT_COMPANY
 
 
 def confirm_company_name(update: Update, context: CallbackContext) -> int:
     """Ask user to confirm company name they just entered or return to previous step"""
 
-    # Same check as in request_company_name(), can be refactored to be more self-descriptive.
+    # This checks if we came here from entering full name or from pressing "Back" in the next step.
+    # If we came back from the confirmation step, there will be no update.message.
     if update.message:
         context.chat_data['company'] = update.message.text
 
     keyboard = [
-        [InlineKeyboardButton("Confirm", callback_data='confirm')],
-        [InlineKeyboardButton("Back", callback_data='back_to_company')],
+        [InlineKeyboardButton(_strings.confirm_button, callback_data='confirm')],
+        [InlineKeyboardButton(_strings.back_button, callback_data='back_to_company')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.effective_chat.send_message(
-        f'Company name stored: {context.chat_data["company"]}. Confirm registration or press Back to reenter company name.',
+        _strings.confirm_registration,
         reply_markup=reply_markup
     )
     return AWAIT_CONFIRMATION
@@ -108,10 +108,7 @@ def complete_registration(update: Update, context: CallbackContext):
         'company': context.chat_data['company'],
     }
     send_user_to_db(user)
-
-    query.edit_message_text('Регистрация успешна. Приятного мероприятия!')
-    update.effective_chat.send_message(text=f'User registered: {user}.')
-
+    query.edit_message_text(_strings.successful_registration)
     return offer_to_choose_schedule_or_question(update, context)
 
 
@@ -119,8 +116,8 @@ def offer_to_choose_schedule_or_question(update: Update, context: CallbackContex
     """Display two inline buttons: Schedule and Ask a question"""
     keyboard = [
         [
-            InlineKeyboardButton("Schedule", callback_data='schedule'),
-            InlineKeyboardButton("Question", callback_data='question'),
+            InlineKeyboardButton(_strings.schedule_button, callback_data='schedule'),
+            InlineKeyboardButton(_strings.question_button, callback_data='question'),
         ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -132,7 +129,7 @@ def offer_to_choose_schedule_or_question(update: Update, context: CallbackContex
         if update.callback_query.data == 'back_to_start':
             update.callback_query.delete_message()
 
-    update.effective_chat.send_message('You are now in the CHOOSE_SCH_OR_Q stage. Please choose:', reply_markup=reply_markup)
+    update.effective_chat.send_message(_strings.choose_sch_or_q, reply_markup=reply_markup)
     return CHOOSE_SCHEDULE_OR_QUESTION
 
 
@@ -153,10 +150,10 @@ def show_sections_to_user(update: Update, context: CallbackContext) -> None:
         if len(keyboard[-1]) > 1:
             keyboard.append([])
 
-    keyboard.append([InlineKeyboardButton("Cancel", callback_data='cancel')])
+    keyboard.append([InlineKeyboardButton(_strings.cancel_button, callback_data='cancel')])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-    query.edit_message_text('Please choose a section:', reply_markup=reply_markup)
+    query.edit_message_text(_strings.choose_section, reply_markup=reply_markup)
 
 
 def show_meetings_in_section_to_user(update: Update, context: CallbackContext) -> None:
@@ -177,10 +174,10 @@ def show_meetings_in_section_to_user(update: Update, context: CallbackContext) -
         )
         if len(keyboard[-1]) > 1:
             keyboard.append([])
-    keyboard.append([InlineKeyboardButton("Cancel", callback_data='cancel')])
+    keyboard.append([InlineKeyboardButton(_strings.cancel_button, callback_data='cancel')])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    query.edit_message_text('Please choose a meeting:', reply_markup=reply_markup)
+    query.edit_message_text(_strings.choose_meeting, reply_markup=reply_markup)
 
 
 def show_schedule_to_user(update: Update, context: CallbackContext, meeting_id) -> int:
@@ -197,7 +194,7 @@ def show_speakers_for_question(update: Update, context: CallbackContext, meeting
     speakers = fetch_meeting_from_db(meeting_id)['speakers']
 
     if speakers:
-        message_text = 'Please choose a speaker:'
+        message_text = _strings.choose_speaker
         keyboard = [[]]
         for speaker in speakers:
             keyboard[-1].append(
@@ -208,12 +205,12 @@ def show_speakers_for_question(update: Update, context: CallbackContext, meeting
             )
             if len(keyboard[-1]) > 1:
                 keyboard.append([])
-        keyboard.append([InlineKeyboardButton("Cancel", callback_data='cancel')])
+        keyboard.append([InlineKeyboardButton(_strings.cancel_button, callback_data='cancel')])
 
     else:
-        message_text = 'No speakers for this event.'
+        message_text = _strings.no_speakers
         keyboard = [
-            [InlineKeyboardButton('Okay.', callback_data='back_to_start')]
+            [InlineKeyboardButton(_strings.back_to_start_button, callback_data='back_to_start')]
         ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     query.edit_message_text(message_text, reply_markup=reply_markup)
@@ -241,10 +238,8 @@ def request_question_text(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
     context.chat_data['speaker_id'] = speaker_id = query.data.split('_')[1]
-    context.chat_data['speaker_name'] = speaker_name = get_participant_name_from_db(speaker_id)
-
-    query.edit_message_text(f'All right. Please send me the question for {speaker_name}. You are now in the AWAIT_QUESTION stage.')
-
+    context.chat_data['speaker_name'] = get_participant_name_from_db(speaker_id)
+    query.edit_message_text(_strings.request_question)
     return AWAIT_QUESTION
 
 
@@ -261,10 +256,12 @@ def send_question_to_speaker_and_db(update: Update, context: CallbackContext):
     speaker_id = context.chat_data['speaker_id']
     speaker_name = context.chat_data['speaker_name']
     participant_name = get_participant_name_from_db(update.effective_user.id)
-    question_text_formatted = (f"Question #{question_message_id} "
-                               f"from {participant_name} ({update.effective_user.id}):\n\n"
-                               f"{question_text}\n\n"
-                               f"To answer, simply send me a reply to this message.")
+    question_text_formatted = _strings.question_text_formatted.format(
+        question_message_id=question_message_id,
+        participant_name=participant_name,
+        user_id=update.effective_user.id,
+        question_text=question_text,
+    )
     question = {
         'question': question_text,
         'question_message_id': question_message_id,
@@ -277,18 +274,18 @@ def send_question_to_speaker_and_db(update: Update, context: CallbackContext):
             chat_id=speaker_id,
             text=question_text_formatted,
         )
-        update.message.reply_text(f'Question "{question}" sent to speaker "{speaker_name}"')
+        update.message.reply_text(_strings.question_sent.format(speaker_name=speaker_name))
     except error.BadRequest:
-        update.message.reply_text(f'There was an error sending your question. Please try again or contact support.')
+        update.message.reply_text(_strings.question_send_error)
     return offer_to_choose_schedule_or_question(update, context)
 
 
 def send_answer_to_participant(update: Update, context: CallbackContext):
     question = update.message.reply_to_message
-    if not question.text.startswith('Question #'):
+    if not question.text.startswith(_strings.question_text_formatted.partition('#')[0]):
         return
     answer = update.message.text
-    answer_formatted = f"Answer from speaker:\n\n{answer}"
+    answer_formatted = _strings.answer_formatted.format(answer=answer)
     question_message_id = question.text.partition('#')[2].partition(' ')[0]
     asking_participant_id = question.text.partition('(')[2].partition(')')[0]
 
@@ -298,6 +295,7 @@ def send_answer_to_participant(update: Update, context: CallbackContext):
         chat_id=asking_participant_id,
         text=answer_formatted,
         reply_to_message_id=question_message_id,
+        allow_sending_without_reply=True,
     )
 
 
@@ -305,13 +303,13 @@ def cancel(update: Update, context: CallbackContext) -> int:
     """Cancel the current operation and offer to choose schedule or question."""
     query = update.callback_query
     query.answer()
-    query.edit_message_text('Okay, cancelled.')
+    query.edit_message_text(_strings.cancelled)
     return offer_to_choose_schedule_or_question(update, context)
 
 
 def help(update: Update, context: CallbackContext):
     """Send help text"""
-    update.effective_chat.send_message('Dummy help text.')
+    update.effective_chat.send_message(_strings.help_message)
 
 
 def main():
