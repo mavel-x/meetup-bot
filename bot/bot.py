@@ -226,6 +226,9 @@ def show_speakers_keyboard_or_schedule(update: Update, context: CallbackContext)
     context.chat_data['meeting'] = selection = query.data
     meeting_id = selection.split('_')[1]
 
+    if 'branch' not in context.chat_data:
+        return offer_to_choose_schedule_or_question(update, context)
+
     if context.chat_data['branch'] == 'question':
         show_speakers_for_question(update, context, meeting_id)
 
@@ -320,6 +323,17 @@ def main():
     conversation_handler = ConversationHandler(
         entry_points=[
             CommandHandler('start', start),
+            CallbackQueryHandler(
+                show_sections_to_user,
+                pattern=r'^question$|^schedule$',
+            ),
+            CallbackQueryHandler(show_meetings_in_section_to_user, pattern=r'^section_\d+$'),
+            CallbackQueryHandler(show_speakers_keyboard_or_schedule, pattern=r'^meeting_\d+$'),
+            CallbackQueryHandler(request_question_text, pattern=r'^speaker_\d+$'),
+            CallbackQueryHandler(cancel, pattern=r'^cancel$'),
+            CallbackQueryHandler(offer_to_choose_schedule_or_question, pattern=r'back_to_start'),
+            MessageHandler(Filters.reply & ~Filters.command, send_answer_to_participant),
+            MessageHandler(Filters.text, help),
         ],
         states={
             AWAIT_REGISTRATION: [CallbackQueryHandler(request_full_name, pattern='^register$')],
