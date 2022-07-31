@@ -320,8 +320,6 @@ def send_question_to_speaker_and_db(update: Update, context: CallbackContext):
             except telegram_error.BadRequest:
                 update.message.reply_text(strings.question_send_error)
             return offer_to_choose_schedule_or_question(update, context)
-        # Что делаем, если вопрос не записался в БД (уже существует полный аналог)?
-        # TODO уточнить ошибку
         else:
             update.message.reply_text(strings.database_error)
             return offer_to_choose_schedule_or_question(update, context)
