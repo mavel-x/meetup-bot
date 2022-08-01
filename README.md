@@ -1,7 +1,6 @@
 # PythonMeetup Bot
  
-Проект содержит телеграмм-бота для митапов, в котором можно задать вопрос спикеру, получить ответ, а также посмотреть расписание.
-A convention bot that helps users get up-to-date event schedules, send their questions to speakers and get answers sent back in text format if the question has not been answered by the speaker on stage. 
+A bot for conventions that helps users get up-to-date event schedules, send their questions to speakers and receive answers in text format if the question has not been answered by the speaker during their talk. 
 
 Test bot: https://t.me/meetup_andrinho_bot
 
