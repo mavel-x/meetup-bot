@@ -313,8 +313,8 @@ def send_question_to_speaker_and_db(update: Update, context: CallbackContext):
             )
             try:
                 context.bot.send_message(
-                chat_id=speaker_id,
-                text=question_text_formatted,
+                    chat_id=speaker_id,
+                    text=question_text_formatted,
                 )
                 update.message.reply_text(strings.question_sent.format(speaker_name=speaker_name))
             except telegram_error.BadRequest:
