@@ -1,7 +1,11 @@
 
 from django.db.models.signals import post_save, post_delete, m2m_changed
 from django.dispatch import receiver
-from meetup.models import Meeting, Question, Participant
+from meetup.models import Meeting, Participant
+from dotenv import load_dotenv
+from telegram.ext import Updater
+from telegram import error as telegram_error
+import os
 
 
 @receiver(post_save, sender=Meeting)
@@ -12,18 +16,13 @@ def notify_participants_about_meetings_update(sender, instance, created, **kwarg
     else:
         notification = f'Обновилась информация о мероприятии «{instance.title}» в секции «{instance.section.title}»'\
                        f'\n\n{instance.content}'
+    send_notification_to_participants(notification)
 
 
 @receiver(post_delete, sender=Meeting)
 def notify_participants_about_meetings_delete(sender, instance, **kwargs):
     notification = f'Мероприятие «{instance.title}» удалено из секции «{instance.section.title}»'
-
-
-@receiver(post_save, sender=Question)
-def notify_participant_about_answered_question(sender, instance, created, **kwargs):
-    if not created and instance.answer:
-        notification = f'Спикер {instance.speaker.name} ответил на ваш вопрос «{instance.question}:»'\
-                       f'\n\n{instance.answer}'
+    send_notification_to_participants(notification)
 
 
 @receiver(m2m_changed, sender=Meeting.speakers.through)
@@ -34,5 +33,24 @@ def notify_speakers_about_appointment_to_meeting(sender, instance, action, rever
         notification = f'Вас удалили из спикеров на мероприятии «{instance.title}» в секции «{instance.section.title}»'
     if 'notification' not in locals():
         return
-    for speaker_id in pk_set:
-        pass
+    send_notification_to_participants(notification, pk_set)
+
+
+def send_notification_to_participants(notification, only_to_ids=None):
+    if only_to_ids:
+        participants = Participant.objects.filter(pk__in=only_to_ids)
+    else:
+        participants = Participant.objects.all()
+
+    load_dotenv()
+    token = os.getenv('TG_TOKEN')
+    updater = Updater(token)
+
+    for participant in participants:
+        try:
+            updater.bot.send_message(
+                chat_id=participant.telegram_id,
+                text=notification
+            )
+        except telegram_error.BadRequest:
+            continue
