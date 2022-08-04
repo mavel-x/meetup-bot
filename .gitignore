@@ -1,6 +1,7 @@
 .vscode
 .flake8
 debug.py
+local_files/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
